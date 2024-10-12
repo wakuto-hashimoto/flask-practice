@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>ログイン画面</h1>
+<h1>新規ユーザー画面</h1>
 <!-- エラーメッセージ部分 -->
 <p style="color: red;">{{error_message}}</p>
 
@@ -20,7 +20,8 @@
             </td>
         </tr>
     </table>
-    <input type="submit" value="ログイン">
+    <input type="submit" value="ユーザー登録">
 </form>
-<a href="/signup" role="button">新規ユーザー登録画面へ</a>
+
+<a href="/login" role="button">ログイン画面へ戻る</a>
 {% endblock %}

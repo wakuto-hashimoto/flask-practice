@@ -4,6 +4,7 @@ import sqlite3
 DATABASE="flaskmemo.db"
 from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -22,6 +23,27 @@ def load_user(userid):
 def unauthorized():
     return redirect('/login')
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    error_message = ''
+    if request.method == 'POST':
+        userid = request.form.get('userid')
+        password = request.form.get('password')
+        pass_hash = generate_password_hash(password, method = 'pbkdf2:sha256')
+        db = get_db()
+        user_check = db.execute("select userid from user where userid=?",[userid]).fetchall()
+        if not user_check:
+            db.execute(
+                "insert into user (userid, password) values(?, ?)",
+                [userid, pass_hash]
+            )
+            db.commit()
+            return redirect('/login')
+        else: 
+            error_message = 'ユーザー名はすでに存在しています'
+            
+    return render_template('signup.html', error_message=error_message)
+
 @app.route('/logout', methods=['GET'])
 def logout():
     logout_user()
@@ -36,12 +58,15 @@ def login():
         userid = request.form.get('userid')
         password = request.form.get('password')
         # ログインチェック
-        if(userid == 'guri' and password =='1234'):
-            user = User(userid)
-            login_user(user)
-            return redirect('/')
-        else:
-            error_message = '入力されたパスワードまたはユーザIDが間違っています'
+        user_data = get_db().execute(
+            "select password from user where userid=?",[userid,]
+        ).fetchone()
+        if user_data is not None:
+            if check_password_hash(user_data[0], password):
+                user = User(userid)
+                login_user(user)
+                return redirect('/')
+        error_message = '入力されたパスワードまたはユーザIDが間違っています'
 
     return render_template('login.html', userid=userid, error_message=error_message)
 
@@ -50,7 +75,7 @@ def login():
 @app.route("/")
 @login_required
 def top():
-    memo_list = get_db().execute("select id, title, body from memo").fetchall()
+    memo_list = get_db().execute("select id, title, body from memo").fetchone()
     return render_template('index.html', memo_list=memo_list)
 
 @app.route("/register", methods=['GET', 'POST'])
